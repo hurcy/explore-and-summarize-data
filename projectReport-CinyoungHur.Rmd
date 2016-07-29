@@ -1,0 +1,308 @@
+Cinyoung Hur
+========================================================
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+
+# load the ggplot graphics package and the others
+
+library(scales)
+if (!require(memisc)) {
+  install.packages('memisc', repos="http://cran.rstudio.com/")
+  library(memisc)
+}
+library(ggplot2)
+if (!require(psych)) {
+  install.packages('psych', repos="http://cran.rstudio.com/")
+  library(psych)
+}
+if (!require(gridExtra)) {
+install.packages('gridExtra', repos="http://cran.rstudio.com/") 
+library(gridExtra)
+}
+
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+setwd("~/Documents/DAND/P4-Explore and Summarize Data/Report")
+wine <- read.csv('wineQualityWhites.csv')
+```
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+Number of rows, Number of columns
+```{r echo=FALSE}
+dim(wine)
+```
+
+Summary of dataset
+```{r echo=FALSE}
+names(wine)
+summary(wine)
+describe(wine)
+```
+White wine dataset has 12 variables that include physicochemical factors and sensory data.
+Most white wines are 6 grade. Feature of the widest range is total sulfur dioxide, and the smallest range is density. 
+
+
+### What is/are the main feature(s) of interest in your dataset?
+The most interesting feature is quality, because it tells about which wine is bad or excellent. The quality is normal distribution as shown in histogram.
+
+```{r echo=FALSE}
+ggplot(aes(x = quality), data = wine) + 
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks=seq(0,10, 1)) 
+```
+
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+Wine experts use their senses to taste wines: sight, smell, taste. Physicochemical properties of wine indicate a specific sensory data. For example, residual sugar make a sweetness, citric acid is related to a freshness, and acid or tannin make an astringent taste. So, I'm interested in citric acid, residual sugar, and fixed acidity. Alcohol is also considered.
+
+#### Citric acid
+```{r}
+summary(wine$citric.acid)
+ggplot(aes(x = citric.acid), data = wine) + 
+  geom_histogram(binwidth = 0.1, fill='orange') +
+  scale_x_continuous(breaks = seq(0, 1.7, 0.1))
+```
+
+Citric acid distribution looks normal distribution. Most of white wines have 0.3 (g/dm^3) of citric acid. There is outlier of 1.7 (g/dm^3) of citric acid.
+
+#### Fixed acidity
+```{r}
+summary(wine$fixed.acidity)
+ggplot(aes(x = fixed.acidity), data = wine) + 
+  geom_histogram(binwidth = 0.5, fill='yellow') +
+  scale_x_continuous(breaks = seq(0, 15, 1))
+```
+
+Fixed acidity distribution seems normal distribution. Most of white wines have 6~7 (g/dm^3) of fixed acidity. There is outlier of 14.2 (g/dm^3).
+
+#### Residual sugar
+```{r}
+summary(wine$residual.sugar)
+ggplot(aes(x = residual.sugar), data = wine) + 
+  geom_histogram(binwidth = 1, fill='green') +
+  scale_x_continuous(breaks = seq(0, 70, 5))
+```
+
+Residual sugar distribution looks skewed. The largest spikes in the 1~2 (g/dm^3). There are very few wines Since there is outlier of 65.8 (g/dm^3) and dataset shows very sweet wine is rare, I plot without top 1% of residual sugar.
+
+#### Alcohol
+```{r}
+summary(wine$alcohol)
+ggplot(aes(x = alcohol), data = wine) + 
+  geom_histogram(binwidth = 0.5, fill='blue') +
+  scale_x_continuous(breaks = seq(0, 15, 0.5))
+```
+
+Alcohol seems skewed. Most white wines are 9.5% alcohol.
+
+### Did you create any new variables from existing variables in the dataset?
+
+```{r}
+wine$quality.factor <- factor(wine$quality)
+summary(wine$quality.factor)
+```
+
+I created a "quality.factor" variable. The quality is based on sensory data of wine experts, and it is between 0 (very bad) and 10 (very excellent). So, I factorize the quality to make easy to see the frequency of quality. In variable description, experts grade quality between 0 and 10, but it seems that extreme quality of wine is very rare. Most of wine are graded as normal. 
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+#### Residual sugar
+```{r}
+summary(wine$residual.sugar)
+ggplot(aes(x = residual.sugar), data = wine) + 
+  geom_histogram(binwidth = 1, fill='green') +
+  scale_x_continuous(breaks = seq(0, 20, 5)) +
+  coord_cartesian(xlim = c(0, quantile(wine$residual.sugar, 0.99)))
+```
+
+There is outlier of 65.8 (g/dm^3) and dataset shows very sweet wine is rare. So, I adjust breaks of x axis and plot without top 1% of residual sugar.
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+#### Quality by alcohol
+
+```{r Quality by alcohol}
+p1 <- ggplot(aes(x = quality, y = alcohol), data=wine) +
+  scale_x_continuous(breaks = 0:10) +
+  geom_point(color='blue', alpha=0.25, position = 'jitter')
+
+p2 <- ggplot(aes(x = '', y = alcohol), data = wine) + 
+  geom_boxplot() +
+  coord_cartesian(ylim = c(9, 13)) +
+  facet_wrap(~ quality, ncol = 7) +
+  xlab('quality')
+grid.arrange(p1, p2, ncol=1)
+
+cor.test(x=wine$quality, y=wine$alcohol)
+```
+
+Level of alcohol is highly correlated to quality. High quality wine tends to have more alcohol.
+
+#### Quality by Residual sugar & Quality by Ctric acid
+
+```{r Residual sugar and Ctric acid}
+
+p1 <- ggplot(aes(x = '', y = residual.sugar), data = wine) + 
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, quantile(wine$residual.sugar, 0.9))) +
+  facet_wrap(~ quality, ncol = 7) +
+  xlab('quality')
+
+p2 <- ggplot(aes(x = '', y = citric.acid), data = wine) + 
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, quantile(wine$citric.acid, 0.9))) +
+  facet_wrap(~ quality, ncol = 7) +
+  xlab('quality')
+
+grid.arrange(p1, p2, ncol=1)
+```
+
+These are quite interesting relationships. Above quality 5, it seems ratio of residual sugar and citric acid is important. 
+High quality of wine tends to crisp and dry. 
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+```{r interesting relationships between the other features}
+
+ggplot(aes(x = residual.sugar, y = density), data=wine) +
+  geom_point(color='black', alpha=0.25) +
+  coord_cartesian(xlim = c(0, quantile(wine$residual.sugar, 0.99))) +
+  stat_smooth(method='lm') +
+  ggtitle('Residual sugar by Density')
+
+cor.test(x=wine$residual.sugar, y=wine$density)
+
+ggplot(aes(x = alcohol, y = density), data=wine) +
+  geom_point(color='blue', alpha=0.25) +
+  coord_cartesian(ylim = c(0.98, 1.01)) +
+  stat_smooth(method='lm') +
+  ggtitle('Alcohol by Density')
+
+cor.test(x=wine$alcohol, y=wine$density)
+```
+
+
+
+Other interesting relationships are residual sugar by density and alcohol by density. As amount of residual sugar is larger, the density gets higher. On the other hand, higher alcohol tends to lower density. 
+
+### What was the strongest relationship you found?
+
+I used ggpairs to find the strongest relationship, and residual sugar and density is the one.
+Correlation coefficient of two variables is quite large (0.838).
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+```{r echo=FALSE, Multivariate_Plots}
+
+wine$pH.factor <- factor(round(wine$pH, 1))
+ggplot(aes(x = citric.acid, y = fixed.acidity, color = pH.factor), data=wine) +
+  geom_point(alpha=0.5, size = 2, position = 'jitter') +
+    scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'pH', reverse = F,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(2.5, 12)) +
+  ggtitle('Fixed acidity by citric acid and pH')
+```
+
+The pH indicates how acid or alkaline the wine is. Citric acid and fixed acidity strengthed pH variable. Among all variables, fixed acidity has largest correlation (-0.43) with pH.
+
+### Were there any interesting or surprising interactions between features?
+```{r}
+wine$alcohol.factor <- factor(round(wine$alcohol, 0))
+ggplot(aes(x = citric.acid, y = residual.sugar, color = alcohol.factor), data = wine) + 
+  geom_point(alpha = 0.5, size = 2, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Alcohol', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(limits = c(0, 1),
+    breaks = seq(0, 1, 0.2)) + 
+  scale_y_continuous(limits = c(0, 20),
+    breaks =  seq(0, 20, 2)) + 
+  facet_wrap(~ quality, ncol=3) +
+  ggtitle('Residual sugar by Citric acid and alcohol facetted by qaulity')
+```
+
+Since large number of wine are 5~6 grades, I facetted by quality to show clearer relationship between residual sugar and citirc acid. As a result, I can see that higher quality wine is less sweet. In addition, color pattern of alcohol is identified: high level of alcohol indicates high quality of wine.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+ggplot(aes(x = quality), data = wine) + 
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks=seq(0,10, 1)) +
+  xlab('Quality') +
+  ylab('Count') +
+  ggtitle('Wine quality histogram')
+```
+
+### Description One
+The most interesting feature is quality, because it tells about which wine is bad or excellent. The quality is normal distribution as shown in histogram.
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+ggplot(aes(x = '', y = alcohol), data = wine) + 
+  geom_boxplot() +
+  coord_cartesian(ylim = c(9, 13)) +
+  facet_wrap(~ quality, ncol = 7) +
+  xlab('Quality') +
+  ylab('Alcohol') +
+  ggtitle('How alcohol affects to wine quality')
+```
+
+### Description Two
+Level of alcohol is highly correlated to quality. High quality wine tends to have more alcohol.
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+wine$alcohol.factor <- factor(round(wine$alcohol, 0))
+ggplot(aes(x = citric.acid, y = residual.sugar, color = alcohol.factor), data = wine) + 
+  geom_point(alpha = 0.5, size = 2, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Alcohol', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(limits = c(0, 1),
+    breaks = seq(0, 1, 0.2)) + 
+  scale_y_continuous(limits = c(0, 20),
+    breaks =  seq(0, 20, 2)) + 
+  facet_wrap(~ quality, ncol=3) +
+  xlab('Citric acid') +
+  ylab('Residual sugar') +
+  ggtitle('Residual sugar by Citric acid and alcohol facetted by qaulity')
+```
+
+### Description Three
+Qaulity of white wines is decided by sensory data of wine experts. And Specific combinations of physicochemical factors affect the senses. For example, a good white wine has a crisp dry taste, which is attributed to citric acid and residual sugar in the wine. 
+In this plot, I can see that higher quality wine is less sweet. In addition, color pattern of alcohol is identified: high level of alcohol indicates high quality of wine.
+
+------
+
+# Reflection
+Some variables were interesting factors since they influence to wine quality. I could explore white wine data set with various analysis and plots. In the bivariate analysis, alcohol shows clear positive relationship with quality. The strongest relationship was between residual sugar and density. Through the multivariate analysis, I checked citric acid, residual sugar, and alcohol are key factor to define wine quality. 
+
+Cortez et al. concluded that the most intriguing result is the high importance of sulphates. An increase in sulphates might be related to the fermenting nutrition, which is very important to improve the wine aroma.
+However, I could not find such a relationship bewteen sulphates and quality. I confirmed high qaulity wines tends to show denser distribution of sulphates, but I'm not sure there is a certain linear relationship. 
+
+In addition, I think variable related to time might help to predict wine quality. Taste of wine changes over time, and aged wine has higher quality. 
+
+
+[Cortez et al., 2009] P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis., Modeling wine preferences by data mining from physicochemical properties., In Decision Support Systems, Elsevier, 47(4):547-553. ISSN: 0167-9236.
+  
